@@ -17,8 +17,8 @@ from scipy.integrate import quadrature
 
 import importlib.resources as pkg_resources
 from . import data
-atmhist_file = pkg_resources.read_text('CFC_atmospheric_histories_revised_2015_Table1.csv')
-atmhist = pd.read_csv(atmhist_file,skiprows=[1])
+atmhist_file = pkg_resources.open_text(data,'CFC_atmospheric_histories_revised_2015_Table1.csv');
+atmhist = pd.read_csv(atmhist_file,skiprows=[1]);
 
 CtoK = 273.15 # Conversion factor to absolute temperature
 

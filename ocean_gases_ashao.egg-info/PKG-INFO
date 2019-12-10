@@ -1,0 +1,19 @@
+Metadata-Version: 2.1
+Name: ocean-gases-ashao
+Version: 1.0.0
+Summary: Do some basic operations with CFC measurements used in oceanography
+Home-page: github.com/ashao/ocean_gases.git
+Author: Andrew E. Shao
+Author-email: aeshao@gmail.com
+License: UNKNOWN
+Description: # Ocean gases
+        A set of tools used to analyze oceanic trace gases. Includes routines for calculating solubilities, partial pressures, etc. for CFC-11, CFC-12, SF6
+        
+        
+        
+Platform: UNKNOWN
+Classifier: Programming Language :: Python :: 3
+Classifier: License :: OSI Approved :: GPLv3
+Classifier: Operating System :: OS Independent
+Requires-Python: >=3.6
+Description-Content-Type: text/markdown
