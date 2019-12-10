@@ -15,6 +15,8 @@ from scipy.interpolate import interp1d
 from scipy.optimize import minimize_scalar
 from scipy.integrate import quadrature
 
+
+
 toK = 273.15 # Conversion factor to absolute temperature
 atmhist = pd.read_csv('CFC_atmospheric_histories_revised_2015_Table1.csv',skiprows=[1])
 
@@ -54,7 +56,7 @@ def tracer_sol_coeffs(gas, units = 'gravimetric'):
         elif 'vol' in units:
             a = [-218.0971, 298.9702, 113.8049, -1.39165]
             b = [-0.143566, 0.091015, -0.0153924]
-    elif gas == 'sf6': # Bullister 2002, DSR 
+    elif gas == 'sf6': # Bullister 2002, DSR
         if 'grav' in units:
             a = [-82.1639, 120.152, 30.6372, 0.]
             b = [0.0293201, -0.0351974, 0.00740056]
@@ -101,17 +103,25 @@ def inverse_gaussian(gamma, delta, t):
     pdf[t>0] = np.sqrt( gamma**3 / (4.*np.pi*delta**2*t[t>0]**3) ) * np.exp( (-gamma*(t[t>0]-gamma)**2) / (4*delta**2*t[t>0]) )
     return pdf
 
-def ttdmatch(measpcfc, meastime, gascol, sat=1.):
+def ttdmatch(measpcfc, meastime, gas, sat=1.,lat=30,verbose=False):
     """
     Tries to find the inverse gaussian (with a fixed specified ratio) that matches the observed pCFC
     This is cast as a scalar optimization problem where gamma is varied until the difference between
     the observed pCFC and the convolution of the IG with the atmospheric history is minimized
     Inputs:
-      measpcfc (float, partial pressure): The measured gas value
-      meastime (float, year fraction)   : The time in the form of year fraction (e.g. 1980.5)
-      gascol   (string)                 : Column name for the gas (e.g. CFC11NH)
-      sat      (flloat, nondim)         : An an assumed saturation value
+      measpcfc (float, partial pressure): Measured gas value
+      meastime (float, year fraction)   : Time in the form of year fraction (e.g. 1980.5)
+      gas      (str)                    : Name of the gas
+      sat      (flloat, nondim)         : An assumed saturation value
+      lat      (float, degrees)         : Latitude of the measurement, assumed Northern Hemisphere by default
     """
+    if lat >= 0:
+        hem = 'NH'
+    elif lat < 0:
+        hem = 'SH'
+
+    gascol = f'{check_tracer_name(gas)}{hem}'.upper()
+
     def fmin(gamma, measpcfc, cfcinterp, tmax):
       # This is the function to be minimized: the difference between the observed partial
       # pressure and that done by convolving an IG with the atmospheric history
@@ -124,9 +134,9 @@ def ttdmatch(measpcfc, meastime, gascol, sat=1.):
     yearbase = atmhist['Year'].values.astype(int) # Base year
     yearfrac = atmhist['Year'].values - yearbase  # Fractional part
     days_in_year = [datetime(year+1,1,1) - datetime(year,1,1) for year in yearbase]
-    year_datenum = [datetime(yearbase[i],1,1) + yearfrac[i]*(days_in_year)[i] for i in range(len(yearbase))]
-    year_datenum = [np.datetime64(date.isoformat()) for date in year_datenum]
-    reltime = (meastime - year_datenum).astype(float)/(1e9*365*86400)
+    year_datenum = np.array([datetime(yearbase[i],1,1) + yearfrac[i]*(days_in_year)[i] for i in range(len(yearbase))])
+    reltime = (meastime - year_datenum)
+    reltime = [ rel.total_seconds()/(365.*86400.) for rel in reltime]
     # Build an interpolating function for the atmospheric history
     cfcinterp = interp1d(reltime, atmhist[gascol].values*sat, fill_value = 0.,kind='quadratic')
     # Make sure that the value is reasonable
@@ -138,6 +148,8 @@ def ttdmatch(measpcfc, meastime, gascol, sat=1.):
         if cfcinterp.y[t] == 0:
           break
       maxtime = cfcinterp.x[t]
-      gamma,_ = minimize_scalar(fmin, args = (measpcfc, cfcinterp, maxtime), bounds = ( (0.1, 1000) ), method='bounded'), reltime
+      gamma = minimize_scalar(fmin, args = (measpcfc, cfcinterp, maxtime), bounds = ( (0.1, 1000) ), method='bounded')
+      if verbose:
+        print(f'measpcfc: {measpcfc} gamma:{gamma.x}')
       return gamma.x
 
