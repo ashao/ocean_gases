@@ -142,7 +142,7 @@ def ttdmatch(measpcfc, meastime, gas, sat=1.,lat=30,verbose=False):
     # Build an interpolating function for the atmospheric history
     cfcinterp = interp1d(reltime, atmhist[gascol].values*sat, fill_value = 0.,kind='quadratic')
     # Make sure that the value is reasonable
-    if np.isnan(measpcfc) or measpcfc > np.max(cfcinterp.y) or measpcfc <= 0.:
+    if (np.isnan(measpcfc)) or (measpcfc > np.max(cfcinterp.y)) or (measpcfc <= 0.) or (meastime.year>yearbase.max()):
       return np.nan
     else:
       # Find the first time that the atmospheric history is 0 (prevents from doing quadrature over a bunch of 0s)
